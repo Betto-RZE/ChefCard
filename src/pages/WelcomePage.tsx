@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, ChefHat, Radio, Sparkles, Timer, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, ChefHat, Radio, Timer, UtensilsCrossed } from 'lucide-react';
 
 interface WelcomePageProps {
   onContinue: () => void;
-  onContinueWithSimulator: () => void;
 }
 
 const HIGHLIGHTS = [
@@ -24,7 +23,7 @@ const HIGHLIGHTS = [
   },
 ];
 
-export function WelcomePage({ onContinue, onContinueWithSimulator }: WelcomePageProps) {
+export function WelcomePage({ onContinue }: WelcomePageProps) {
   return (
     <main className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-[#faf7f2] px-6 pt-8 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">
       {/* Warm ambient background glow */}
@@ -78,7 +77,7 @@ export function WelcomePage({ onContinue, onContinueWithSimulator }: WelcomePage
             </div>
             <div>
               <p className="text-xs font-bold">Cocina Vegana</p>
-              <p className="font-mono text-[9px] text-white/70">04:A1:2B:3C</p>
+              <p className="font-mono text-[9px] text-white/70">UID por detectar</p>
             </div>
           </motion.div>
 
@@ -94,7 +93,7 @@ export function WelcomePage({ onContinue, onContinueWithSimulator }: WelcomePage
             </div>
             <div>
               <p className="text-xs font-bold">Carnes Frías</p>
-              <p className="font-mono text-[9px] text-white/70">04:B8:7D:19</p>
+              <p className="font-mono text-[9px] text-white/70">UID por detectar</p>
             </div>
           </motion.div>
 
@@ -182,14 +181,6 @@ export function WelcomePage({ onContinue, onContinueWithSimulator }: WelcomePage
           <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
         </button>
 
-        <button
-          type="button"
-          onClick={onContinueWithSimulator}
-          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-semibold text-stone-600 hover:bg-stone-200/60 active:scale-[0.99]"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-orange-600" />
-          Ir directo al simulador de tarjetas
-        </button>
       </motion.div>
     </main>
   );

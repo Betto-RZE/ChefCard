@@ -10,11 +10,11 @@
  * Conexión RC522 -> ESP32 (¡SIEMPRE A 3.3V, NUNCA 5V!):
  *   RC522 3.3V  -> ESP32 3V3
  *   RC522 GND   -> ESP32 GND
- *   RC522 SDA   -> ESP32 GPIO 5
- *   RC522 SCK   -> ESP32 GPIO 18
- *   RC522 MOSI  -> ESP32 GPIO 23
- *   RC522 MISO  -> ESP32 GPIO 19
- *   RC522 RST   -> ESP32 GPIO 22
+ *   RC522 SDA/SS -> ESP32 GPIO 25
+ *   RC522 SCK    -> ESP32 GPIO 26
+ *   RC522 MOSI   -> ESP32 GPIO 27
+ *   RC522 MISO   -> ESP32 GPIO 32
+ *   RC522 RST    -> ESP32 GPIO 33
  *   RC522 IRQ   -> (sin conectar)
  */
 
@@ -32,9 +32,12 @@ const char* WIFI_PASSWORD = "TU_CONTRASEÑA_WIFI";
 // Ejemplo: http://192.168.1.45:5173/api/rfid-scan
 const char* SERVER_URL = "http://192.168.1.100:5173/api/rfid-scan";
 
-// Pines del módulo RC522 (VSPI estándar en ESP32)
-constexpr uint8_t SS_PIN = 5;
-constexpr uint8_t RST_PIN = 22;
+// Pines SPI personalizados, todos accesibles en la fila derecha de tu ESP32.
+constexpr uint8_t SS_PIN = 25;
+constexpr uint8_t SCK_PIN = 26;
+constexpr uint8_t MISO_PIN = 32;
+constexpr uint8_t MOSI_PIN = 27;
+constexpr uint8_t RST_PIN = 33;
 
 // Feedback visual/sonoro opcional
 constexpr uint8_t LED_PIN = 2;       // LED azul integrado en la mayoría de ESP32
@@ -157,7 +160,7 @@ void setup() {
     digitalWrite(BUZZER_PIN, LOW);
   }
 
-  SPI.begin();
+  SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);
   mfrc522.PCD_Init();
   delay(50);
 

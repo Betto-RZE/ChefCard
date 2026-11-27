@@ -36,14 +36,12 @@ Este documento define el contexto operativo, las convenciones técnicas y las re
 
 ---
 
-## 4. Reglas Críticas de Integración RFID (ESP32 + RC522 / Simulador / Web NFC)
-1. **Aislamiento:** Toda interacción con `EventSource('/api/rfid-stream')` y `window.NDEFReader` debe vivir exclusivamente dentro de `src/hooks/useNfcReader.ts` y utilidades en `src/utils/nfcParser.ts`. Nunca accedas a SSE o `NDEFReader` directamente desde páginas o componentes visuales.
-2. **Degradación elegante (Graceful Degradation):**
-   - Si el puente SSE está desconectado (por ejemplo, en un deploy estático sin ESP32), informa claramente el estado y ofrece siempre el **Simulador RFID**.
-   - Verifica `'NDEFReader' in window` antes de invocar Web NFC y usa `AbortController` con limpieza al desmontar.
+## 4. Reglas Críticas de Integración RFID (ESP32 + RC522)
+1. **Aislamiento:** Toda interacción con `EventSource('/api/rfid-stream')` debe vivir exclusivamente dentro de `src/hooks/useNfcReader.ts`. Nunca accedas a SSE directamente desde páginas o componentes visuales.
+2. **Degradación elegante:** Si el puente SSE está desconectado, informa claramente el estado y muestra cómo conectar la app, computadora y ESP32 a la misma red.
 3. **Resolución de tarjetas:**
-   - Normaliza siempre los UIDs a mayúsculas con formato `AA:BB:CC:DD` tanto en el firmware ESP32 como en `rfidBridgePlugin.ts` y `nfcParser.ts`.
-   - Prioriza: `1) URL NDEF (/book/:slug)` -> `2) Mapa UID en useCardStore` -> `3) Flujo UnknownCardModal para vincular tarjeta nueva`.
+   - Normaliza siempre los UIDs a mayúsculas con formato hexadecimal por bytes (`AA:BB:CC:DD`) en el firmware ESP32, `rfidBridgePlugin.ts` y `nfcParser.ts`.
+   - Busca el UID en `useCardStore`; si aún no está vinculado, abre `UnknownCardModal` para asignar el libro.
 
 ---
 
@@ -55,7 +53,7 @@ Este documento define el contexto operativo, las convenciones técnicas y las re
 ---
 
 ## 6. Convenciones de Código y Calidad
-- **TypeScript estricto:** Evita `any`. Usa los tipos definidos en `src/types/domain.ts` y `src/types/web-nfc.d.ts`.
+- **TypeScript estricto:** Evita `any`. Usa los tipos definidos en `src/types/domain.ts`.
 - **Componentes pequeños y enfocados:** Separa lógica de hardware/estado (hooks y stores) de presentación (componentes y páginas).
 
 ---

@@ -4,7 +4,7 @@
 - **Sin Backend Remoto ni Base de Datos:** El catálogo de libros/recetas vive en TypeScript local y los vínculos `UID ↔ Libro` + progreso se persisten en `localStorage` con Zustand.
 - **Puente IoT Ligero en Tiempo Real:** Un plugin liviano de Vite (`rfidBridgePlugin.ts`, sin dependencias extra) expone `POST /api/rfid-scan` para el **ESP32 + RC522** y retransmite cada lectura vía **Server-Sent Events (`GET /api/rfid-stream`)** a cualquier celular (**iPhone** o Android) conectado en la misma red Wi-Fi.
 - **Mobile-First Real:** Contenedor optimizado para smartphone (`max-w-md mx-auto min-h-dvh`), controles en *thumb zone* (`>= 44x44px`) y soporte `env(safe-area-inset-bottom)`.
-- **Capa RFID Desacoplada:** Todas las fuentes de lectura (**ESP32 SSE**, **Simulador RFID** y **Web NFC opcional**) convergen en `useNfcReader.ts` y `nfcParser.ts`.
+- **Capa RFID:** Las lecturas del **ESP32 + RC522** llegan por SSE a `useNfcReader.ts`; los UID físicos se resuelven con `nfcParser.ts` y los vínculos locales.
 - **Resiliencia en Cocina:** Temporizadores basados en `endTime` (timestamp absoluto) para no desfasarse si el celular bloquea la pantalla.
 
 ---
@@ -17,8 +17,6 @@ flowchart TD
     CARD -->|"Lectura SPI"| ESP["ESP32 + Módulo RC522"]
     ESP -->|"Wi-Fi HTTP POST /api/rfid-scan"| BRIDGE["Puente Local Vite (rfidBridgePlugin.ts)"]
     BRIDGE -->|"SSE /api/rfid-stream (Tiempo real)"| HOOK["useNfcReader Hook (iPhone / Mobile)"]
-    SIM["Simulador RFID (UI sin hardware)"] --> HOOK
-    WEBNFC["Web NFC opcional (Android)"] --> HOOK
 
     HOOK --> PARSER["nfcParser (Normalización UID / Resolución)"]
     PARSER --> CARDSTORE["useCardStore (Zustand + localStorage)"]
@@ -53,11 +51,10 @@ ChefCard/
 │   └── favicon.svg
 └── src/
     ├── main.tsx                       # Punto de entrada React + BrowserRouter
-    ├── App.tsx                        # Mapa de rutas, shell móvil, simulador y modal tarjeta nueva
+    ├── App.tsx                        # Mapa de rutas, shell móvil y modal tarjeta nueva
     ├── index.css                      # Tailwind CSS v4 + utilidades táctiles
     ├── types/
     │   ├── domain.ts                  # Cookbook, Recipe, Ingredient, Step, CardMapping, ActiveTimer
-    │   └── web-nfc.d.ts               # Declaraciones TypeScript para Web NFC (opcional)
     ├── data/
     │   ├── cookbooks.ts               # Catálogo de 4 libros de cocina temáticos
     │   └── recipes.ts                 # 8 recetas detalladas con ingredientes, pasos y tiempos
@@ -65,7 +62,7 @@ ChefCard/
     │   ├── useCardStore.ts            # Vínculos UID <-> cookbookSlug e historial de escaneos
     │   └── useCookingStore.ts         # Progreso de receta, porciones, checklist y timers
     ├── hooks/
-    │   ├── useNfcReader.ts            # Receptor SSE (ESP32) + Simulador RFID + Web NFC opcional
+    │   ├── useNfcReader.ts            # Receptor SSE (ESP32 + RC522)
     │   ├── useWakeLock.ts             # Pantalla siempre encendida en Modo Cocina (Fase 3-4)
     │   └── useTimerAlerts.ts          # Tick sobre endTime + Web Audio + vibración (Fase 3-4)
     ├── utils/
@@ -73,10 +70,10 @@ ChefCard/
     │   └── formatters.ts              # Formateo MM:SS y escalado de ingredientes
     ├── components/
     │   ├── layout/AppShell.tsx        # Contenedor mobile-first + navegación inferior
-    │   └── nfc/                       # RfidSimulatorSheet, UnknownCardModal
+    │   └── nfc/                       # UnknownCardModal
     └── pages/
         ├── WelcomePage.tsx            # /              -> Pantalla de bienvenida inicial
-        ├── HomePage.tsx               # /scan          -> Lector en vivo (ESP32/Simulador) + libros
+        ├── HomePage.tsx               # /scan          -> Lector RFID en vivo + libros
         ├── CookbookPage.tsx           # /book/:slug    -> Libro desbloqueado por tarjeta RFID
         ├── RecipeDetailPage.tsx       # /recipe/:id    -> Porciones y mise en place (siguiente fase)
         ├── CookModePage.tsx           # /cook/:id      -> Modo Cocina paso a paso (siguiente fase)
@@ -90,7 +87,7 @@ ChefCard/
 | Ruta | Pantalla | Rol en el flujo |
 | :--- | :--- | :--- |
 | `/` | `WelcomePage` | Pantalla de bienvenida sin barra inferior con CTA hacia el lector |
-| `/scan` | `HomePage` | Lector activo escuchando al ESP32 + acceso al Simulador y galería de libros |
+| `/scan` | `HomePage` | Lector activo escuchando al ESP32 + galería de libros |
 | `/book/:slug` | `CookbookPage` | Destino automático al pasar una tarjeta física RFID por el RC522 |
 | `/recipe/:id` | `RecipeDetailPage` | Vista previa, ajuste de porciones y checklist *mise en place* |
 | `/cook/:id` | `CookModePage` | Asistente paso a paso sin distracciones, temporizadores y *Wake Lock* |
@@ -112,8 +109,8 @@ ChefCard/
 
 ### B. Resolución de Tarjetas (`useNfcReader` + `nfcParser`)
 1. Normalización de UID a mayúsculas con dos puntos (`AA:BB:CC:DD`).
-2. Prioridad: `1) URL NDEF (/book/:slug)` → `2) Mapa UID en useCardStore` → `3) Modal UnknownCardModal para vincular la tarjeta nueva en un toque`.
+2. Busca el UID en `useCardStore`; si aún no está vinculado, `UnknownCardModal` permite asignarlo a un libro.
 
 ### C. Persistencia Local (`localStorage`)
-- `chefcard-cards-v1`: Vínculos `Record<string, CardMapping>` e historial de los últimos 12 escaneos.
+- `chefcard-cards-v2`: Vínculos físicos `Record<string, CardMapping>` e historial de los últimos 12 escaneos.
 - `chefcard-cooking-v1`: Receta en curso, paso actual, ingredientes marcados, porciones y temporizadores activos.

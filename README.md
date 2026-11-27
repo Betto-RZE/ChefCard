@@ -2,7 +2,7 @@
 
 **ChefCard** es una aplicación web *mobile-first* (PWA) que funciona como asistente personal de cocina activado mediante **tarjetas físicas RFID 13.56 MHz (S50)** leídas con un **ESP32 + módulo RC522** y sincronizadas en tiempo real con tu **iPhone** (o cualquier smartphone).
 
-> **Sin bases de datos ni servidores externos:** incluye un puente en tiempo real integrado en Vite para el ESP32 y un **Simulador RFID** para probar incluso sin hardware conectado.
+> **Sin bases de datos ni servidores externos:** el ESP32 + RC522 lee el UID de cada tarjeta MIFARE Classic S50 y lo envía por Wi-Fi al puente local de Vite. ChefCard guarda la relación UID ↔ libro en el navegador.
 
 ---
 
@@ -31,7 +31,7 @@ cd ChefCard
 pnpm install
 ```
 
-### 3. Inicia la app (lista para PC, iPhone y ESP32)
+### 3. Inicia la app (servidor local para PC, iPhone y ESP32)
 ```bash
 pnpm dev
 ```
@@ -40,7 +40,7 @@ Vite mostrará dos direcciones:
 - **Local (PC):** `http://localhost:5173`
 - **Network (iPhone y ESP32 en el mismo Wi-Fi):** `http://192.168.x.x:5173`
 
-> **Tip:** Abre la URL **Network** en Safari de tu **iPhone** para ver el indicador verde **"ESP32 listo"**.
+> Abre la URL **Network** en Safari del iPhone. El indicador confirma que el navegador está conectado al puente local; el ESP32 se confirma al acercar una tarjeta y recibir su UID.
 
 ---
 
@@ -65,7 +65,7 @@ Resumen rápido:
 3. Coloca tu Wi-Fi **2.4 GHz** y la URL `http://<IP-DE-TU-PC>:5173/api/rfid-scan` (puedes copiarla directo desde la pestaña **Tarjetas** en ChefCard).
 4. Sube el sketch al ESP32, abre ChefCard en tu iPhone y acerca tus tarjetas físicas **13.56 MHz S50** al lector RC522.
 
-> **¿Aún no conectas el ESP32?** Puedes probar hoy mismo el puente HTTP completo desde la pestaña **Tarjetas** con el botón **"Probar puente HTTP"** o usando el **Simulador RFID**.
+> Las tarjetas S50 se usan por su UID físico. No es necesario grabarles una URL ni leerlas con el NFC del celular: el RC522 se encarga de identificarlas.
 
 ---
 

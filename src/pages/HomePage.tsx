@@ -1,48 +1,24 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  BookOpen,
-  ChevronRight,
-  Cpu,
-  CreditCard,
-  Radio,
-  Smartphone,
-  Sparkles,
-  Square,
-} from 'lucide-react';
+import { BookOpen, ChevronRight, Cpu, CreditCard, Radio } from 'lucide-react';
 import { COOKBOOKS, getCookbookBySlug } from '../data/cookbooks';
 import { getRecipesByCookbook } from '../data/recipes';
 import { useCardStore } from '../store/useCardStore';
-import type { BridgeStatus, NfcStatus } from '../hooks/useNfcReader';
+import type { BridgeStatus } from '../hooks/useNfcReader';
 
 interface HomePageProps {
-  isNfcSupported: boolean;
   bridgeStatus: BridgeStatus;
-  nfcStatus: NfcStatus;
   nfcMessage: string | null;
   nfcError: string | null;
-  onStartScan: () => void;
-  onStopScan: () => void;
-  onOpenSimulator: () => void;
 }
 
-export function HomePage({
-  isNfcSupported,
-  bridgeStatus,
-  nfcStatus,
-  nfcMessage,
-  nfcError,
-  onStartScan,
-  onStopScan,
-  onOpenSimulator,
-}: HomePageProps) {
+export function HomePage({ bridgeStatus, nfcMessage, nfcError }: HomePageProps) {
   const mappings = useCardStore((state) => state.mappings);
   const lastUnlockedSlug = useCardStore((state) => state.lastUnlockedSlug);
   const lastBook = lastUnlockedSlug ? getCookbookBySlug(lastUnlockedSlug) : undefined;
 
-  const isScanning = nfcStatus === 'scanning';
   const isEsp32Ready = bridgeStatus === 'connected';
-  const isListening = isScanning || isEsp32Ready;
+  const isListening = isEsp32Ready;
 
   const countCardsForBook = (slug: string) =>
     Object.values(mappings).filter((mapping) => mapping.cookbookSlug === slug).length;
@@ -60,21 +36,17 @@ export function HomePage({
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
             isEsp32Ready
               ? 'bg-emerald-100 text-emerald-800'
-              : isNfcSupported
-                ? 'bg-sky-100 text-sky-800'
-                : 'bg-amber-100 text-amber-800'
+              : 'bg-amber-100 text-amber-800'
           }`}
         >
           <span
             className={`h-2 w-2 rounded-full ${
               isEsp32Ready
                 ? 'animate-pulse bg-emerald-500'
-                : isNfcSupported
-                  ? 'bg-sky-500'
                   : 'bg-amber-500'
             }`}
           />
-          {isEsp32Ready ? 'ESP32 listo' : isNfcSupported ? 'Web NFC listo' : 'Modo Simulador'}
+          {isEsp32Ready ? 'Puente conectado' : 'Puente desconectado'}
         </span>
       </header>
 
@@ -111,24 +83,18 @@ export function HomePage({
           </div>
 
           <h2 className="text-lg font-bold">
-            {isScanning
-              ? 'Esperando tarjeta NFC...'
-              : isEsp32Ready
-                ? 'Escuchando lector RFID (ESP32)'
-                : 'Acerca una tarjeta de cocina'}
+            {isEsp32Ready ? 'Acerca una tarjeta S50 al lector' : 'Conecta la app al puente RFID'}
           </h2>
           <p className="mt-1 max-w-xs text-xs leading-relaxed text-stone-300">
             {isEsp32Ready
-              ? 'Acerca tu tarjeta RFID 13.56 MHz al módulo RC522 para abrir el libro automáticamente en tu celular.'
-              : isNfcSupported
-                ? 'Activa el escáner NFC para leer tu tarjeta física o prueba con el simulador integrado.'
-                : 'Conecta el puente local para recibir lecturas del ESP32 + RC522 o usa el Simulador RFID.'}
+              ? 'El puente de esta app está conectado. Cuando el ESP32 lea una tarjeta con el RC522, ChefCard abrirá su libro o te pedirá asignarlo.'
+              : 'Inicia ChefCard con pnpm dev y abre esta dirección desde el celular y la computadora que compartirán la red Wi-Fi.'}
           </p>
 
           {isEsp32Ready && (
             <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold text-emerald-300">
               <Cpu className="h-3.5 w-3.5" />
-              Puente en tiempo real activo (/api/rfid-scan)
+              App conectada al puente local · /api/rfid-scan
             </div>
           )}
 
@@ -144,37 +110,6 @@ export function HomePage({
             </p>
           )}
 
-          <div className="mt-4 flex w-full flex-col gap-2.5">
-            {isNfcSupported &&
-              (isScanning ? (
-                <button
-                  type="button"
-                  onClick={onStopScan}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/15 text-sm font-bold text-white active:scale-95"
-                >
-                  <Square className="h-4 w-4 fill-current" />
-                  Detener escaneo NFC
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onStartScan}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 text-sm font-bold text-white hover:bg-white/15 active:scale-95"
-                >
-                  <Smartphone className="h-4 w-4" />
-                  Usar NFC del teléfono
-                </button>
-              ))}
-
-            <button
-              type="button"
-              onClick={onOpenSimulator}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 text-sm font-bold text-white shadow-lg shadow-orange-600/30 active:scale-95"
-            >
-              <Sparkles className="h-4 w-4" />
-              Simular tarjeta RFID
-            </button>
-          </div>
         </div>
       </section>
 

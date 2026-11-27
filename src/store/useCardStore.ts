@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { CardMapping } from '../types/domain';
 import { normalizeUid } from '../utils/nfcParser';
 
-export type ScanSource = 'esp32-rfid' | 'web-nfc' | 'simulator' | 'ndef-url';
+export type ScanSource = 'esp32-rfid';
 
 export interface ScanRecord {
   id: string;
@@ -14,26 +14,7 @@ export interface ScanRecord {
   timestamp: number;
 }
 
-const DEMO_CARD_MAPPINGS: Record<string, CardMapping> = {
-  '04:A1:2B:3C': {
-    uid: '04:A1:2B:3C',
-    cookbookSlug: 'cocina-vegana',
-    customLabel: 'Tarjeta Demo #01',
-    updatedAt: 1700000001000,
-  },
-  '04:B8:7D:19': {
-    uid: '04:B8:7D:19',
-    cookbookSlug: 'carnes-frias',
-    customLabel: 'Tarjeta Demo #02',
-    updatedAt: 1700000002000,
-  },
-  '04:C3:5E:90': {
-    uid: '04:C3:5E:90',
-    cookbookSlug: 'postres',
-    customLabel: 'Tarjeta Demo #03',
-    updatedAt: 1700000003000,
-  },
-};
+const LEGACY_DEMO_UIDS = new Set(['04:A1:2B:3C', '04:B8:7D:19', '04:C3:5E:90']);
 
 interface CardStoreState {
   mappings: Record<string, CardMapping>;
@@ -43,13 +24,12 @@ interface CardStoreState {
   unlinkCard: (uid: string) => void;
   recordScan: (entry: Omit<ScanRecord, 'id' | 'timestamp'>) => ScanRecord;
   clearHistory: () => void;
-  resetDemoCards: () => void;
 }
 
 export const useCardStore = create<CardStoreState>()(
   persist(
     (set) => ({
-      mappings: DEMO_CARD_MAPPINGS,
+      mappings: {},
       scanHistory: [],
       lastUnlockedSlug: null,
 
@@ -96,13 +76,31 @@ export const useCardStore = create<CardStoreState>()(
 
       clearHistory: () => set({ scanHistory: [] }),
 
-      resetDemoCards: () =>
-        set({
-          mappings: DEMO_CARD_MAPPINGS,
-        }),
     }),
     {
       name: 'chefcard-cards-v1',
+      version: 2,
+      migrate: (persistedState, version) => {
+        if (version >= 2) return persistedState as CardStoreState;
+
+        const previous = persistedState as Partial<CardStoreState>;
+        const mappings = Object.fromEntries(
+          Object.entries(previous.mappings ?? {}).filter(([uid, mapping]) => {
+            const normalizedUid = normalizeUid(uid);
+            return (
+              !LEGACY_DEMO_UIDS.has(normalizedUid) &&
+              !mapping.customLabel?.startsWith('Tarjeta Demo')
+            );
+          }),
+        );
+        const scanHistory = (previous.scanHistory ?? []).filter(
+          (scan) =>
+            scan.source === 'esp32-rfid' &&
+            (!scan.uid || !LEGACY_DEMO_UIDS.has(normalizeUid(scan.uid))),
+        );
+
+        return { ...previous, mappings, scanHistory } as CardStoreState;
+      },
     },
   ),
 );

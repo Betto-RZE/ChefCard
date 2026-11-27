@@ -22,16 +22,14 @@ El proyecto también tiene como meta práctica **conectar un lector físico RFID
 - **Pantalla del usuario:** Smartphone (**iPhone** o Android) ejecutando la web app ChefCard en el mismo Wi-Fi.
 
 ### Estrategia de lectura en tiempo real
-ChefCard centraliza todas las fuentes de lectura en un único flujo unificado:
+ChefCard utiliza el flujo físico único:
 
 1. **Estación ESP32 + RC522 (Flujo principal de hardware):**
    - El ESP32 lee el **UID** real de la tarjeta S50 (`AA:BB:CC:DD`) y envía un `POST /api/rfid-scan` por Wi-Fi al puente local integrado en Vite (`pnpm dev`).
    - El puente retransmite el evento en tiempo real vía **Server-Sent Events (`/api/rfid-stream`)** a Safari en el iPhone (o cualquier navegador conectado).
    - Al recibir el UID, ChefCard abre el libro vinculado o muestra el diálogo para vincular la tarjeta nueva en un toque.
-2. **Simulador RFID integrado (Desarrollo sin hardware):**
-   - Permite emular tarjetas físicas desde PC o celular pasando por exactamente el mismo flujo de resolución y persistencia.
-3. **Web NFC / URL NDEF (Soporte opcional):**
-   - Compatible de forma adicional con Chrome Android (`NDEFReader`) y rutas directas `/book/:slug`.
+2. **Asignación local de tarjetas:**
+   - La primera lectura real del UID abre el diálogo para asignar un libro. El vínculo queda en `localStorage` de ese navegador.
 
 ### Ejemplos de tarjetas y libros
 | Tarjeta Física S50 | Slug / Ruta | Libro de Cocina |
@@ -40,6 +38,8 @@ ChefCard centraliza todas las fuentes de lectura en un único flujo unificado:
 | Tarjeta #02 | `/book/carnes-frias` | **Carnes Frías y Tablas** |
 | Tarjeta #03 | `/book/postres` | **Postres y Repostería** |
 | Tarjeta #04 | `/book/cocina-rapida` | **Cocina Rápida (< 20 min)** |
+
+Con tres tarjetas S50, asigna cualquier tres libros al leer sus UID reales; no es necesario usar todos los libros del catálogo.
 
 ---
 
@@ -60,9 +60,9 @@ ChefCard centraliza todas las fuentes de lectura en un único flujo unificado:
 ## 5. Flujo Principal del Usuario (User Journey)
 
 1. **Bienvenida (`/`)**
-   - Pantalla inicial de presentación con acceso directo al lector (`/scan`) o al simulador.
+   - Pantalla inicial de presentación con acceso directo al lector (`/scan`).
 2. **Lector RFID (`/scan`)**
-   - Escucha en tiempo real las lecturas del **ESP32 + RC522** (con indicador verde *"ESP32 listo"*), ofrece el **Simulador RFID** y muestra la galería de libros.
+   - Recibe en tiempo real las lecturas del **ESP32 + RC522** y muestra la galería de libros.
 3. **Vista de Libro de Cocina (`/book/:slug`)**
    - Se abre automáticamente al pasar una tarjeta por el RC522, mostrando identidad visual del libro y sus recetas.
 4. **Detalle de Receta y *Mise en Place* (`/recipe/:id`)**
@@ -70,7 +70,7 @@ ChefCard centraliza todas las fuentes de lectura en un único flujo unificado:
 5. **Modo Cocina Paso a Paso (`/cook/:id`)**
    - Un paso a la vez con tipografía grande, temporizadores simultáneos basados en `endTime`, alertas sonoras/vibración y *Wake Lock*.
 6. **Gestor de Tarjetas (`/cards`)**
-   - Muestra el estado del puente ESP32, la URL `SERVER_URL`, un botón de prueba HTTP end-to-end, gestión de vínculos `UID ↔ Libro` e historial de escaneos.
+   - Muestra el estado del puente local, la URL `SERVER_URL`, pasos de configuración, vínculos `UID ↔ Libro` e historial de lecturas físicas.
 
 ---
 
@@ -79,7 +79,7 @@ ChefCard centraliza todas las fuentes de lectura en un único flujo unificado:
 - [x] Inicializar proyecto con Vite + React + TypeScript + Tailwind CSS v4 + PWA (`pnpm`).
 - [x] Crear dataset inicial de 4 libros de cocina y 8 recetas completas.
 - [x] Implementar puente en tiempo real **ESP32 → Vite SSE → iPhone** (`rfidBridgePlugin.ts`) y firmware listo en `firmware/chefcard_rfid/chefcard_rfid.ino`.
-- [x] Implementar hook unificado `useNfcReader` (receptor SSE del ESP32 + simulador RFID + soporte opcional Web NFC).
+- [x] Implementar receptor SSE del ESP32 + RC522 y asignación de nuevas tarjetas físicas S50.
 - [x] Construir pantalla de Bienvenida (`/`), Lector (`/scan`), Libro (`/book/:slug`) y Gestor de Tarjetas (`/cards`) con vinculación de tarjetas nuevas.
 - [ ] Construir pantalla de **Detalle de Receta (`/recipe/:id`)** con escalador de porciones y checklist de ingredientes.
 - [ ] Construir **Modo Cocina (`/cook/:id`)** paso a paso con barra de progreso, múltiples temporizadores persistentes (`endTime`), alertas sonoras y `Wake Lock`.
