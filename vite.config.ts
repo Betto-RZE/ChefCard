@@ -11,7 +11,7 @@ export default defineConfig({
     rfidBridgePlugin(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'chefcard-logo.svg'],
       manifest: {
         name: 'ChefCard — Asistente de Cocina RFID',
         short_name: 'ChefCard',

@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { StartupSplash } from './components/brand/StartupSplash';
 import { AppShell } from './components/layout/AppShell';
 import { UnknownCardModal } from './components/nfc/UnknownCardModal';
 import { useNfcReader, type NfcScanResult } from './hooks/useNfcReader';
@@ -11,7 +13,13 @@ import { CardsManagerPage } from './pages/CardsManagerPage';
 export default function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [showSplash, setShowSplash] = useState(true);
   const [unknownCardUid, setUnknownCardUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowSplash(false), 1650);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const handleScanResult = useCallback(
     (result: NfcScanResult) => {
@@ -83,6 +91,10 @@ export default function App() {
           });
         }}
       />
+
+      <AnimatePresence>
+        {showSplash && <StartupSplash key="startup-splash" />}
+      </AnimatePresence>
     </AppShell>
   );
 }
