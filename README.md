@@ -1,77 +1,92 @@
 # ChefCard 🍳💳
 
-**ChefCard** es una aplicación web *mobile-first* (PWA) que funciona como asistente personal de cocina activado mediante **tarjetas físicas RFID 13.56 MHz (S50)** leídas con un **ESP32 + módulo RC522** y sincronizadas en tiempo real con tu **iPhone** (o cualquier smartphone).
+ChefCard convierte tarjetas RFID físicas en accesos directos a libros de recetas. Acerca una tarjeta a un lector **RC522** conectado a un **ESP32** y el libro vinculado se abre en ChefCard desde el celular. La aplicación también ayuda a explorar recetas y, conforme se completa el flujo de cocina, preparar ingredientes y seguir instrucciones paso a paso.
 
-> **Sin bases de datos ni servidores externos:** el ESP32 + RC522 lee el UID de cada tarjeta MIFARE Classic S50 y lo envía por Wi-Fi al puente local de Vite. ChefCard guarda la relación UID ↔ libro en el navegador.
+Está pensada para usarse en la cocina desde el teléfono. No requiere cuentas ni una base de datos en la nube: el catálogo se incluye en la app y los vínculos entre tarjetas y libros se guardan localmente en el navegador.
 
----
+## Cómo funciona
 
-## Requisitos previos
-
-- **Node.js** `v20` o superior
-- **pnpm** `v9+`
-
-Puedes verificarlo en tu terminal con:
-```bash
-node -v
-pnpm -v
+```text
+Tarjeta RFID 13.56 MHz
+        ↓ lectura del UID
+RC522 conectado al ESP32
+        ↓ Wi-Fi, HTTP POST /api/rfid-scan
+Puente local de Vite en la computadora
+        ↓ evento en tiempo real (SSE)
+ChefCard abierta en el celular
+        ↓
+Libro de recetas vinculado a esa tarjeta
 ```
 
----
+1. El RC522 lee el UID único de la tarjeta **MIFARE Classic S50 de 13.56 MHz**. No hay que programar la tarjeta ni guardar una URL en ella.
+2. El ESP32 envía ese UID por Wi-Fi al puente local que se inicia junto con Vite.
+3. El puente transmite la lectura al navegador que tiene ChefCard abierta.
+4. Si la tarjeta ya está vinculada, ChefCard abre el libro correspondiente. Si es nueva, permite elegir un libro y guardar el vínculo.
 
-## Inicio rápido (3 pasos)
+La computadora que ejecuta Vite, el ESP32 y el celular deben poder comunicarse por la misma red local. El lector RC522 trabaja a **3.3 V**; no lo alimentes con 5 V.
 
-### 1. Entra a la carpeta del proyecto
+## Qué incluye
+
+- Una pantalla de bienvenida y una experiencia optimizada para celular.
+- Un catálogo local de libros de cocina y recetas.
+- Lectura de tarjetas físicas mediante ESP32 + RC522.
+- Vinculación y administración de UID de tarjetas con libros.
+- Un puente local de Vite con los endpoints `POST /api/rfid-scan`, `GET /api/rfid-stream` y `GET /api/rfid-status`.
+- Una PWA que se puede instalar desde un navegador compatible.
+
+Los vínculos y algunos datos de uso se guardan en `localStorage` del navegador. Por ello, cada celular conserva sus propios vínculos; abrir la app en otro dispositivo no copia automáticamente sus datos.
+
+## Requisitos
+
+- Node.js 20 o superior.
+- pnpm (la versión indicada por `package.json` / Corepack).
+- Para usar el lector físico: ESP32 con Wi-Fi, módulo RC522 y tarjetas RFID MIFARE Classic S50 de 13.56 MHz.
+- Para usar el celular y el lector: computadora, celular y ESP32 conectados a una red local que permita la comunicación entre dispositivos.
+
+## Inicio rápido
+
 ```bash
+git clone https://github.com/Betto-RZE/ChefCard.git
 cd ChefCard
-```
-
-### 2. Instala las dependencias
-```bash
 pnpm install
-```
-
-### 3. Inicia la app (servidor local para PC, iPhone y ESP32)
-```bash
 pnpm dev
 ```
 
-Vite mostrará dos direcciones:
-- **Local (PC):** `http://localhost:5173`
-- **Network (iPhone y ESP32 en el mismo Wi-Fi):** `http://192.168.x.x:5173`
+Abre en la computadora la dirección `Local` que muestra Vite. En el celular, abre la dirección `Network` que muestra la terminal. Usa la dirección de red de la computadora en la configuración del firmware para que el ESP32 pueda enviar las lecturas.
 
-> Abre la URL **Network** en Safari del iPhone. El indicador confirma que el navegador está conectado al puente local; el ESP32 se confirma al acercar una tarjeta y recibir su UID.
+> Si el celular o el ESP32 no pueden conectarse, revisa que estén en la misma red y que el firewall de la computadora permita Node.js/Vite en redes privadas.
 
----
+## Conectar el ESP32 y el RC522
 
-## Comandos disponibles
+La guía de hardware contiene el cableado de cada pin, los pasos de Arduino IDE y la configuración del Wi-Fi:
+
+- [Guía de conexión y firmware](./firmware/README.md)
+- [Sketch para Arduino IDE](./firmware/chefcard_rfid/chefcard_rfid.ino)
+
+Configura en el sketch la red Wi-Fi de 2.4 GHz y la URL del puente con la IP local de la computadora, por ejemplo:
+
+```cpp
+http://192.168.1.50:5173/api/rfid-scan
+```
+
+La dirección es solo un ejemplo: utiliza la IP que Vite muestra en tu propia red. Carga el sketch al ESP32, deja `pnpm dev` ejecutándose y abre ChefCard en el celular antes de acercar una tarjeta.
+
+## Comandos
 
 | Comando | Descripción |
-| :--- | :--- |
-| `pnpm dev` | Inicia desarrollo en red local (`host: true`) + puente RFID (`/api/rfid-scan` y `/api/rfid-stream`) |
-| `pnpm typecheck` | Verifica los tipos de TypeScript (`tsc --noEmit`) |
-| `pnpm build` | Valida tipos y genera la compilación de producción + PWA en `dist/` |
-| `pnpm preview` | Previsualiza la build de producción (también con puente RFID activo) |
+| --- | --- |
+| `pnpm dev` | Inicia la app y el puente RFID local para desarrollo. |
+| `pnpm typecheck` | Comprueba los tipos de TypeScript. |
+| `pnpm build` | Ejecuta TypeScript y genera la compilación de producción y la PWA. |
+| `pnpm preview` | Sirve localmente la compilación generada. |
 
----
+## Tecnologías
 
-## Conectar tu estación física ESP32 + RC522
+React, TypeScript, Vite, Tailwind CSS, Zustand, React Router, Framer Motion, Lucide y `vite-plugin-pwa`. El puente RFID se implementa como plugin de Vite; no hay un servicio backend remoto.
 
-Consulta la guía completa de compras, pines y carga en Arduino IDE en **[firmware/README.md](./firmware/README.md)**.
+## Documentación
 
-Resumen rápido:
-1. Conecta el **RC522** al **ESP32** alimentado a **3.3V** (nunca 5V).
-2. Abre **[firmware/chefcard_rfid/chefcard_rfid.ino](./firmware/chefcard_rfid/chefcard_rfid.ino)** en Arduino IDE.
-3. Coloca tu Wi-Fi **2.4 GHz** y la URL `http://<IP-DE-TU-PC>:5173/api/rfid-scan` (puedes copiarla directo desde la pestaña **Tarjetas** en ChefCard).
-4. Sube el sketch al ESP32, abre ChefCard en tu iPhone y acerca tus tarjetas físicas **13.56 MHz S50** al lector RC522.
-
-> Las tarjetas S50 se usan por su UID físico. No es necesario grabarles una URL ni leerlas con el NFC del celular: el RC522 se encarga de identificarlas.
-
----
-
-## Documentación del proyecto
-
-- [CONTEXTO.md](./CONTEXTO.md) — Visión del producto, flujo de usuario y alcance del MVP.
-- [ARQUITECTURA.md](./ARQUITECTURA.md) — Estructura de carpetas, diagrama ESP32 ↔ SSE ↔ Mobile y contratos.
-- [AGENTS.md](./AGENTS.md) — Convenciones técnicas y reglas de desarrollo.
-- [firmware/README.md](./firmware/README.md) — Lista de compras, cableado RC522 → ESP32 y pasos en Arduino IDE.
+- [CONTEXTO.md](./CONTEXTO.md): propósito, flujo de usuario y alcance del producto.
+- [ARQUITECTURA.md](./ARQUITECTURA.md): componentes, rutas y protocolo RFID.
+- [firmware/README.md](./firmware/README.md): hardware, cableado y firmware.
+- [AGENTS.md](./AGENTS.md): convenciones de desarrollo del repositorio.
